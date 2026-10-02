@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planimetría Interactiva de Experiencias</title>
+    <title>Planimetría Virtual Interactiva</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -28,7 +28,8 @@
             padding: 20px;
         }
 
-        .controls-panel {
+        /* Panel de administración/carga */
+        .admin-panel {
             background: var(--card-bg);
             padding: 20px 25px;
             border-radius: 12px;
@@ -39,7 +40,7 @@
             margin-right: auto;
         }
 
-        .controls-panel h1 {
+        .admin-panel h1 {
             color: var(--primary);
             font-size: 1.4rem;
             margin-bottom: 12px;
@@ -52,7 +53,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         input[type="text"] {
@@ -95,11 +96,22 @@
             background-color: #0f766e;
         }
 
-        .btn-print {
-            background-color: #059669;
+        /* Encabezado limpio en vista compartida */
+        .viewer-header {
+            max-width: 1350px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
         }
-        .btn-print:hover {
-            background-color: #047857;
+
+        .viewer-header h1 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .info-text {
@@ -107,6 +119,7 @@
             color: #64748b;
         }
 
+        /* Contenedor del plano */
         .layout-container {
             width: 100%;
             max-width: 1350px;
@@ -245,61 +258,28 @@
             line-height: 1.2;
             text-align: center;
         }
-
-        @media print {
-            @page {
-                size: letter landscape;
-                margin: 6mm;
-            }
-
-            body {
-                background: white;
-                padding: 0;
-            }
-
-            .controls-panel, .photo-tooltip {
-                display: none !important;
-            }
-
-            .layout-container {
-                box-shadow: none;
-                padding: 0;
-                max-width: 100%;
-            }
-
-            .seating-grid {
-                gap: 4px;
-            }
-
-            .seat-card {
-                min-height: 65px;
-                padding: 3px 2px;
-                border: 1px solid #64748b;
-            }
-
-            .seat-code {
-                font-size: 0.7rem;
-            }
-
-            .seat-name {
-                font-size: 0.6rem;
-            }
-        }
     </style>
 </head>
 <body>
 
-    <div class="controls-panel">
-        <h1>📐 Planimetría Virtual Interactiva</h1>
+    <!-- Panel de Carga (solo visible para el administrador) -->
+    <div class="admin-panel" id="adminPanel">
+        <h1>📐 Generador de Planimetría</h1>
         <div class="input-group">
-            <input type="text" id="sheetUrl" placeholder="Pega el enlace público del Google Sheet de la experiencia aquí..." />
+            <input type="text" id="sheetUrl" placeholder="Pega el enlace público del Google Sheet aquí..." />
             <button onclick="cargarPlanimetria()">🔄 Cargar Plano</button>
-            <button class="btn-share" onclick="copiarEnlaceCompartible()">🔗 Copiar Enlace Compartible</button>
-            <button class="btn-print" onclick="window.print()">🖨️ Imprimir PDF (Carta)</button>
+            <button class="btn-share" onclick="copiarEnlaceCompartible()">🔗 Copiar Link para Usuarios</button>
         </div>
-        <p class="info-text">💡 Pasa el ratón sobre cualquier silla para ver la foto registrada en la columna <b>FOTO</b>.</p>
+        <p class="info-text">💡 Al presionar <b>Copiar Link para Usuarios</b> se generará un enlace limpio donde la barra de arriba estará oculta.</p>
     </div>
 
+    <!-- Encabezado Limpio (solo visible para los usuarios finales) -->
+    <div class="viewer-header" id="viewerHeader" style="display: none;">
+        <h1>📐 Planimetría de Acomodación</h1>
+        <p class="info-text">💡 Pasa el ratón sobre cualquier puesto para ver la fotografía del asistente.</p>
+    </div>
+
+    <!-- Plano Virtual -->
     <div class="layout-container">
         <div class="stage-container">
             🎭 TARIMA / PÚLPITO 🎭
@@ -327,10 +307,7 @@
                 const csvText = await res.text();
                 const filas = parseCSV(csvText);
 
-                if (filas.length < 2) {
-                    alert('El archivo no contiene suficientes registros.');
-                    return;
-                }
+                if (filas.length < 2) return;
 
                 const headers = filas[0].map(h => h.toUpperCase().trim());
 
@@ -368,7 +345,7 @@
 
             } catch (e) {
                 console.error(e);
-                alert('No se pudo cargar la hoja. Asegúrate de que el enlace de Google Sheets esté configurado con acceso público ("Cualquier persona con el enlace").');
+                alert('Asegúrate de que la hoja de cálculo esté compartida públicamente.');
             }
         }
 
@@ -430,7 +407,7 @@
         function copiarEnlaceCompartible() {
             const rawUrl = document.getElementById('sheetUrl').value.trim();
             if (!rawUrl) {
-                alert('Ingresa primero el enlace de Google Sheets para generar el link compartible.');
+                alert('Ingresa primero el enlace de Google Sheets.');
                 return;
             }
 
@@ -438,22 +415,27 @@
             const finalShareUrl = `${baseUrl}?sheet=${encodeURIComponent(rawUrl)}`;
 
             navigator.clipboard.writeText(finalShareUrl).then(() => {
-                alert('¡Enlace compartible copiado al portapapeles!\n\nAl enviar este enlace, la persona que lo abra verá automáticamente el plano cargado.');
+                alert('¡Enlace limpio copiado al portapapeles!\n\nAl compartir este link, los usuarios solo verán el plano e imágenes sin barras de carga.');
             }).catch(() => {
                 prompt('Copia este enlace manualmente:', finalShareUrl);
             });
         }
 
-        // Auto-cargar si se abre mediante un enlace compartible con parámetro URL ?sheet=...
+        // Lógica de detección de usuario final vs administrador
         window.onload = () => {
             const params = new URLSearchParams(window.location.search);
             const sheetParam = params.get('sheet') || params.get('url');
 
             if (sheetParam) {
+                // Modo Visor Usuario Final (Oculta la barra de entrada y opciones)
+                document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('viewerHeader').style.display = 'flex';
                 document.getElementById('sheetUrl').value = sheetParam;
                 cargarPlanimetria();
             } else {
-                // Enlace por defecto (tu retiro actual)
+                // Modo Carga/Administrador (Muestra las opciones)
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('viewerHeader').style.display = 'none';
                 document.getElementById('sheetUrl').value = 'https://docs.google.com/spreadsheets/d/12mHm-nbGwWU060SURJ2DYXsM3mCHF75jzIGBvrH1t0g/edit?usp=sharing';
                 cargarPlanimetria();
             }

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planimetría Interactiva de Experiencias</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #2563eb;
+            --accent: #d97706;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .controls-panel {
+            background: var(--card-bg);
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            margin-bottom: 25px;
+            max-width: 1350px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .controls-panel h1 {
+            color: var(--primary);
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 320px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        button {
+            padding: 10px 18px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background-color: var(--primary-light);
+        }
+
+        .btn-share {
+            background-color: #0d9488;
+        }
+        .btn-share:hover {
+            background-color: #0f766e;
+        }
+
+        .btn-print {
+            background-color: #059669;
+        }
+        .btn-print:hover {
+            background-color: #047857;
+        }
+
+        .info-text {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .layout-container {
+            width: 100%;
+            max-width: 1350px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
+        }
+
+        .stage-container {
+            width: 100%;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+            border-bottom: 4px solid var(--accent);
+        }
+
+        .seating-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 8px;
+        }
+
+        .seat-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 4px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .seat-card.occupied {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .seat-card.empty {
+            background: #f8fafc;
+            border-style: dashed;
+            border-color: var(--border);
+            color: #94a3b8;
+        }
+
+        .seat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+            border-color: var(--primary-light);
+            z-index: 50;
+        }
+
+        .seat-code {
+            font-weight: 800;
+            font-size: 0.78rem;
+            color: var(--primary);
+            background: #dbeafe;
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .seat-name {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.15;
+            margin-top: 4px;
+            word-break: break-word;
+        }
+
+        /* Foto emergente en Hover */
+        .photo-tooltip {
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            width: 140px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.25);
+            padding: 8px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            border: 2px solid var(--primary-light);
+        }
+
+        .photo-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--primary-light) transparent transparent transparent;
+        }
+
+        .seat-card:hover .photo-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .photo-tooltip img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #e2e8f0;
+            display: block;
+        }
+
+        .photo-tooltip .tooltip-name {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 6px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        @media print {
+            @page {
+                size: letter landscape;
+                margin: 6mm;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .controls-panel, .photo-tooltip {
+                display: none !important;
+            }
+
+            .layout-container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .seating-grid {
+                gap: 4px;
+            }
+
+            .seat-card {
+                min-height: 65px;
+                padding: 3px 2px;
+                border: 1px solid #64748b;
+            }
+
+            .seat-code {
+                font-size: 0.7rem;
+            }
+
+            .seat-name {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls-panel">
+        <h1>📐 Planimetría Virtual Interactiva</h1>
+        <div class="input-group">
+            <input type="text" id="sheetUrl" placeholder="Pega el enlace público del Google Sheet de la experiencia aquí..." />
+            <button onclick="cargarPlanimetria()">🔄 Cargar Plano</button>
+            <button class="btn-share" onclick="copiarEnlaceCompartible()">🔗 Copiar Enlace Compartible</button>
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimir PDF (Carta)</button>
+        </div>
+        <p class="info-text">💡 Pasa el ratón sobre cualquier silla para ver la foto registrada en la columna <b>FOTO</b>.</p>
+    </div>
+
+    <div class="layout-container">
+        <div class="stage-container">
+            🎭 TARIMA / PÚLPITO 🎭
+        </div>
+        <div class="seating-grid" id="grid"></div>
+    </div>
+
+    <script>
+        const FILAS = ['A','B','C','D','E','F','G','H'];
+        const COLS = 12;
+
+        async function cargarPlanimetria() {
+            const rawUrl = document.getElementById('sheetUrl').value.trim();
+            if (!rawUrl) return;
+
+            const match = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            let csvUrl = rawUrl;
+
+            if (match && match[1]) {
+                csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+            }
+
+            try {
+                const res = await fetch(csvUrl);
+                const csvText = await res.text();
+                const filas = parseCSV(csvText);
+
+                if (filas.length < 2) {
+                    alert('El archivo no contiene suficientes registros.');
+                    return;
+                }
+
+                const headers = filas[0].map(h => h.toUpperCase().trim());
+
+                const idxSilla = headers.indexOf('SILLA');
+                const idxNom1 = headers.findIndex(h => h.includes('NOMBRE 1') || h.includes('PRIMER NOMBRE'));
+                const idxNom2 = headers.findIndex(h => h.includes('NOMBRE 2') || h.includes('SEGUNDO NOMBRE'));
+                const idxAp1 = headers.findIndex(h => h.includes('APELLIDO 1') || h.includes('PRIMER APELLIDO'));
+                const idxAp2 = headers.findIndex(h => h.includes('APELLIDO 2') || h.includes('SEGUNDO APELLIDO'));
+                const idxFoto = headers.findIndex(h => h.includes('FOTO'));
+
+                const mapa = {};
+
+                for (let i = 1; i < filas.length; i++) {
+                    const row = filas[i];
+                    if (!row || row.length === 0) continue;
+
+                    const silla = idxSilla !== -1 ? row[idxSilla]?.trim().toUpperCase() : '';
+                    if (!silla) continue;
+
+                    const nom1 = idxNom1 !== -1 ? row[idxNom1] || '' : '';
+                    const nom2 = idxNom2 !== -1 ? row[idxNom2] || '' : '';
+                    const ap1 = idxAp1 !== -1 ? row[idxAp1] || '' : '';
+                    const ap2 = idxAp2 !== -1 ? row[idxAp2] || '' : '';
+                    const foto = idxFoto !== -1 ? row[idxFoto] || '' : '';
+
+                    const nombreComp = `${nom1} ${nom2} ${ap1} ${ap2}`.replace(/\s+/g, ' ').trim();
+
+                    mapa[silla] = {
+                        nombre: nombreComp,
+                        foto: foto
+                    };
+                }
+
+                renderGrid(mapa);
+
+            } catch (e) {
+                console.error(e);
+                alert('No se pudo cargar la hoja. Asegúrate de que el enlace de Google Sheets esté configurado con acceso público ("Cualquier persona con el enlace").');
+            }
+        }
+
+        function parseCSV(text) {
+            const lines = text.split(/\r\n|\n/);
+            return lines.map(line => {
+                const row = [];
+                let insideQuotes = false;
+                let entry = '';
+                for (let char of line) {
+                    if (char === '"') insideQuotes = !insideQuotes;
+                    else if (char === ',' && !insideQuotes) {
+                        row.push(entry.trim());
+                        entry = '';
+                    } else entry += char;
+                }
+                row.push(entry.trim());
+                return row;
+            });
+        }
+
+        function renderGrid(mapa) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            FILAS.forEach(f => {
+                for (let c = 1; c <= COLS; c++) {
+                    const num = c < 10 ? `0${c}` : `${c}`;
+                    const codigo = `${f}${num}`;
+                    const item = mapa[codigo];
+
+                    const div = document.createElement('div');
+                    div.className = `seat-card ${item ? 'occupied' : 'empty'}`;
+
+                    let html = `<div class="seat-code">S-${codigo}</div>`;
+
+                    if (item) {
+                        html += `<div class="seat-name">${item.nombre}</div>`;
+                        const fotoUrl = item.foto.startsWith('http') 
+                            ? item.foto 
+                            : 'https://via.placeholder.com/140?text=Sin+Foto';
+
+                        html += `
+                            <div class="photo-tooltip">
+                                <img src="${fotoUrl}" alt="${item.nombre}" onerror="this.src='https://via.placeholder.com/140?text=Sin+Foto'">
+                                <div class="tooltip-name">${item.nombre}</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<div class="seat-name" style="color:#94a3b8;">Disponible</div>`;
+                    }
+
+                    div.innerHTML = html;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function copiarEnlaceCompartible() {
+            const rawUrl = document.getElementById('sheetUrl').value.trim();
+            if (!rawUrl) {
+                alert('Ingresa primero el enlace de Google Sheets para generar el link compartible.');
+                return;
+            }
+
+            const baseUrl = window.location.origin + window.location.pathname;
+            const finalShareUrl = `${baseUrl}?sheet=${encodeURIComponent(rawUrl)}`;
+
+            navigator.clipboard.writeText(finalShareUrl).then(() => {
+                alert('¡Enlace compartible copiado al portapapeles!\n\nAl enviar este enlace, la persona que lo abra verá automáticamente el plano cargado.');
+            }).catch(() => {
+                prompt('Copia este enlace manualmente:', finalShareUrl);
+            });
+        }
+
+        // Auto-cargar si se abre mediante un enlace compartible con parámetro URL ?sheet=...
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const sheetParam = params.get('sheet') || params.get('url');
+
+            if (sheetParam) {
+                document.getElementById('sheetUrl').value = sheetParam;
+                cargarPlanimetria();
+            } else {
+                // Enlace por defecto (tu retiro actual)
+                document.getElementById('sheetUrl').value = 'https://docs.google.com/spreadsheets/d/12mHm-nbGwWU060SURJ2DYXsM3mCHF75jzIGBvrH1t0g/edit?usp=sharing';
+                cargarPlanimetria();
+            }
+        };
+    </script>
+</body>
+</html>
